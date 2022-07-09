@@ -12,6 +12,9 @@
 /_book
 /build/*
 
+# Jest
+/coverage
+
 # TypeScript definitions installed by Typings
 /typings
 
