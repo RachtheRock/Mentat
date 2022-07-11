@@ -1,5 +1,6 @@
 export enum Role {
     Harvester = 0,
-    Upgrader = 1,
-    Builder = 2,
+    Thopter = 1,
+    Pyon = 2,
+    StarterHarvester = 3,
 }

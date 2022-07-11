@@ -1,4 +1,5 @@
 import { Role } from "enums";
+import { Mentat } from "mentat";
 import { ErrorMapper } from "utils/ErrorMapper";
 
 declare global {
@@ -19,6 +20,7 @@ declare global {
     interface CreepMemory {
         role: Role;
         working: boolean;
+        governor: string;
     }
 
     // Syntax for adding proprties to `global` (ex "global.log")
@@ -28,6 +30,8 @@ declare global {
         }
     }
 }
+
+let mentat = new Mentat();
 
 // When compiling TS to JS and bundling with rollup, the line numbers and file names in error messages change
 // This utility uses source maps to get the line numbers and file names of the original, TS source code
@@ -40,4 +44,6 @@ export const loop = ErrorMapper.wrapLoop(() => {
             delete Memory.creeps[name];
         }
     }
+
+    mentat.run();
 });

@@ -26,3 +26,16 @@ export function getNumCreepsByRole(role: Role): number {
 export function generateCreepName(role: Role): string {
     return `${Role[role]}${Game.time}`;
 }
+
+/**
+     * Get the total energy cost of the CreepSkeleton's body.
+     * The body parts cost varying amounts of energy.
+     * @returns The energy cost of the body
+     */
+//  getBodyPartCost(): number {
+//     let cost = 0;
+//     for (var i = 0; i < this.body.length; ++i) {
+//         cost += BODYPART_COST[this.body[i]];
+//     }
+//     return cost;
+// }
