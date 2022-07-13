@@ -1,3 +1,4 @@
+import { CreepRoleMemory } from "creep-role-memory";
 import { Role } from "enums";
 
 
@@ -11,6 +12,7 @@ class CreepSkeleton implements ICreepSkeleton {
         role: Role.Harvester,
         working: false,
         governor: '',
+        rmem: {} as CreepRoleMemory,
     };
     body: BodyPartConstant[] = [];
 }
@@ -20,6 +22,9 @@ class HarvesterCreepSkeleton extends CreepSkeleton {
     constructor() {
         super();
         this.memory.role = Role.Harvester;
+        if ('harvesting' in this.memory.rmem) {
+            this.memory.rmem.harvesting = false;
+        }
         this.body = [WORK, WORK, CARRY, MOVE];
     }
 }
@@ -28,6 +33,9 @@ class ThopterCreepSkeleton extends CreepSkeleton {
     constructor() {
         super();
         this.memory.role = Role.Thopter;
+        if ('thoptering' in this.memory.rmem) {
+            this.memory.rmem.thoptering = false;
+        }
         this.body = [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE];
     }
 }
@@ -36,6 +44,9 @@ class PyonCreepSkeleton extends CreepSkeleton {
     constructor() {
         super();
         this.memory.role = Role.Pyon;
+        if ('pyoning' in this.memory.rmem) {
+            this.memory.rmem.pyoning = false;
+        }
         this.body = [WORK, CARRY, CARRY, MOVE, MOVE];
     }
 }
