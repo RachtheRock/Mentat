@@ -1,6 +1,7 @@
 import { Role } from "enums";
 import { Report } from "report";
 import { roleStarterHarvester } from "roles/role.starter-harvester";
+import { roleStarterPyon } from "roles/role.starter-pyon";
 import { roleHarvester } from "roles/role.harvester";
 import { generateCreepName, getNumCreepsByRole } from "utils/utils";
 import { buildRCLupgrades } from "building/masterBuilder";
@@ -96,6 +97,9 @@ export class Governor {
             case (Role.StarterHarvester): {
                 return [false];
             }
+            case (Role.StarterPyon): {
+                return [false];
+            }
             case (Role.Harvester): {
                 return [false];
             }
@@ -155,6 +159,9 @@ export class Governor {
             if (creep){
                 switch (creep.memory.role) {
                     case (Role.StarterHarvester): {
+                        roleStarterHarvester.run(creep);
+                    }
+                    case (Role.StarterPyon): {
                         roleStarterHarvester.run(creep);
                     }
                     case (Role.Harvester): {

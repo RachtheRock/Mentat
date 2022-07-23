@@ -1,12 +1,17 @@
 export enum Role {
     StarterHarvester = 0,
-    Harvester = 1,
-    Thopter = 2,
-    Pyon = 3,
+    StarterPyon = 1,
+    Harvester = 2,
+    Thopter = 3,
+    Pyon = 5,
 }
 
 export enum StarterHarvesterIndex {
     Harvesting = 0
+}
+
+export enum StarterPyonIndex {
+    Pyonging = 0
 }
 
 export enum HarvesterIndex {
