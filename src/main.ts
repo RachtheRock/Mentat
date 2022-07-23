@@ -49,6 +49,7 @@ export const loop = ErrorMapper.wrapLoop(() => {
             delete Memory.creeps[name];
         }
     }
+    // Comment
 
     mentat.run();
 });
