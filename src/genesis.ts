@@ -1,4 +1,6 @@
-export function genesis(): void {
+import { Mentat } from "mentat";
+
+export function genesis(): Mentat {
     if (Memory.awake === undefined) {
         console.log('Genesis: begin');
         Memory.awake = true;
@@ -13,11 +15,11 @@ export function genesis(): void {
         // Pyon
         Memory.bodyTemplates.push([WORK, CARRY, CARRY, MOVE, MOVE]);
 
-        console.log(Memory.bodyTemplates);
+        return new Mentat(true);
     }
     else {
         console.log('Genesis: already begun')
-
+        return new Mentat(false);
     }
 }
 

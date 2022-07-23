@@ -6,13 +6,17 @@ export class Mentat {
     //governors: Map<string, Governor>;
     governors: Governor[];
 
-    constructor() {
+    constructor(isNew: boolean) {
+    /*
+    INPUTS: isNew - is the Mentat a newly created one or are we just reconstructing it?
+    */
         this.governors = []
         // Create a governor for each room under mentat's control
+        // These governors are assumed to not be newly created
         for (const roomName in Game.rooms) {
             let controller = Game.rooms[roomName].controller
             if (controller !== undefined && controller.my) {
-                this.governors.push(new Governor(controller.room))
+                this.governors.push(new Governor(controller.room, isNew))
             }
         }
     }

@@ -3,43 +3,56 @@ import { Report } from "report";
 import { roleStarterHarvester } from "roles/role.starter-harvester";
 import { roleHarvester } from "roles/role.harvester";
 import { generateCreepName, getNumCreepsByRole } from "utils/utils";
+import { buildRCLupgrades } from "building/masterBuilder";
 
 
 export class Governor {
-    room: Room;
-    id: string;
+    name: string;
     creeps: Id<Creep>[] = [];
     spawningCreeps: string[] = [];
+    rcl: Number = 0;
     exploitRatio = 0;
     MIN_HARVESTERS = 5;
     MIN_THOPTERS = 5;
     MIN_PYONS = 5;
 
-    constructor(room: Room) {
-        this.room = room;
-        this.id = room.name;
+    constructor(room: Room, isNew: boolean) {
+        /*
+        INPUTS:
+        Room - the room that the governor presides over
+        isNew - is the governor a newly created one or are we just reconstructing it?
+        */
+        this.name = room.name;
+        if (room.controller?.level){
+            this.rcl = room.controller?.level
+        }
 
         // We search all creeps in the game to see if they belong to this governor
         // This is becuase of the reset storms/pushing a new version of main
-        for (const name in Game.creeps) {
-            if (Game.creeps[name].memory.governor === this.id) {
+        for (const creepName in Game.creeps) {
+            if (Game.creeps[creepName].memory.governor === this.name) {
                 // If the creep has been spawned
-                if (Game.creeps[name].id != undefined){
-                    this.creeps.push(Game.creeps[name].id);
+                if (Game.creeps[creepName].id != undefined){
+                    this.creeps.push(Game.creeps[creepName].id);
                 }
                 // If the creep has not been spawned
                 else{
-                    this.spawningCreeps.push(name);
+                    this.spawningCreeps.push(creepName);
                 }
 
             }
         }
+
+        // If the governor is new then we begin the construction process
+        if(isNew){
+            buildRCLupgrades(this.name, 1);
+        }
     }
 
     getReport(): Report{
-        let energy: number = this.room.energyAvailable;
+        let energy: number = Game.rooms[this.name]!.energyAvailable;
 
-        let storages: AnyStructure[]  = this.room.find(FIND_STRUCTURES);
+        let storages: AnyStructure[]  = Game.rooms[this.name].find(FIND_STRUCTURES);
 
         for (let i = 0; i < storages.length; ++i) {
             let storage = storages[i];
@@ -49,11 +62,11 @@ export class Governor {
         }
 
         let report: Report = {
-            govId: this.id,
+            govId: this.name,
             energy: energy,
             exploitRatio: this.exploitRatio,
-            threatLevel: this.room.find(FIND_HOSTILE_CREEPS).length,
-            rcl: this.room.controller!.level,
+            threatLevel: Game.rooms[this.name].find(FIND_HOSTILE_CREEPS).length,
+            rcl: Game.rooms[this.name].controller!.level,
         };
         return report;
     }
@@ -63,12 +76,12 @@ export class Governor {
      * @param role The role assigned to the newly spawned creep
      */
     spawnCreep(role: Role): void {
-        let creepName: string = generateCreepName(role, this.id);
+        let creepName: string = generateCreepName(role, this.name);
         // TODO: Resolve Spawns dynamically
         if (Game.spawns['Spawn1'].spawnCreep(
             Memory.bodyTemplates[role],
             creepName,
-            { memory: {role: role, governor: this.id, data: this.initData(role)} }
+            { memory: {role: role, governor: this.name, data: this.initData(role)} }
         ) === OK){
             // If we spawn a creep we add the newly created creep to the governor's list of creeps
             // Unfortunatly a creep is not given an id until it is spawned so we must wait
@@ -101,6 +114,8 @@ export class Governor {
     executeOrders(): void {
         this.maintainCreepLevels();
         this.runCreeps();
+        // Builds the necessary buildings based upon RCL
+        this.build()
     }
 
     /**
@@ -116,9 +131,10 @@ export class Governor {
         let numPyons = getNumCreepsByRole(Role.Thopter);
 
         // We make a special starter harvester
-        if (numHarvesters === 0 && numStarterHarvesters >= 0) {
+        if (numHarvesters === 0 && numStarterHarvesters < 20) {
             this.spawnCreep(Role.StarterHarvester)
         }
+        /*
         else if (numHarvesters < this.MIN_HARVESTERS) {
             this.spawnCreep(Role.Harvester);
         }
@@ -129,6 +145,7 @@ export class Governor {
         else if (numPyons < this.MIN_PYONS) {
             this.spawnCreep(Role.Pyon);
         }
+        */
     }
 
     // This exists becuase later groups will be run by the governors
@@ -165,6 +182,18 @@ export class Governor {
                 this.creeps.push(Game.creeps[this.spawningCreeps[i]].id);
                 // We take the creep of the currently spawning list
                 this.spawningCreeps.splice(i, 1);
+            }
+        }
+    }
+
+    build(): void{
+        // First we check to see if the rcl has changed
+        let currentRCL = Game.rooms[this.name].controller?.level
+        if (currentRCL != undefined){
+            if (currentRCL > this.rcl){
+                console.log(`Room ${this.name} was upgraded to RCL ${currentRCL}.`);
+                // If the rcl has changed we build all the new avaible buildings
+
             }
         }
     }
