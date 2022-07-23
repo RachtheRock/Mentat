@@ -1,22 +1,20 @@
+import { StarterHarvesterIndex } from "enums";
 
 export var roleHarvester = {
     run(creep: Creep): void {
 
-        // If working is true, the creep is returning to the spawn
-        // If working is false, the creep is moving to energy source and harvesting
-
         // If the creep is out of energy then it goes to harvest more
-        if (creep.memory.working && creep.store.energy == 0){
-            creep.memory.working = false;
+        if (creep.memory.data[StarterHarvesterIndex.Harvesting] && creep.store.energy == 0){
+            creep.memory.data[StarterHarvesterIndex.Harvesting] = false;
         }
 
         // If the creep is full of energy then it goes to distribute it in the spawn or an extension
-        else if (!creep.memory.working && creep.store.energy == creep.store.getCapacity()){
-            creep.memory.working = true;
+        else if (!creep.memory.data[StarterHarvesterIndex.Harvesting] && creep.store.energy == creep.store.getCapacity()){
+            creep.memory.data[StarterHarvesterIndex.Harvesting] = true;
         }
 
         // Goes to deposit energy in spawn or in extensions
-        if (creep.memory.working) {
+        if (creep.memory.data[StarterHarvesterIndex.Harvesting]) {
 
             // We find the structures in the room that can be "refilled", first we look for towers
 

@@ -1,6 +1,8 @@
 import { Role } from "enums";
 import { Mentat } from "mentat";
+import { genesis } from "genesis";
 import { ErrorMapper } from "utils/ErrorMapper";
+
 
 declare global {
     /*
@@ -15,12 +17,14 @@ declare global {
     interface Memory {
         uuid: number;
         log: any;
+        awake: boolean;
+        bodyTemplates: BodyPartConstant[][];
     }
 
     interface CreepMemory {
         role: Role;
-        working: boolean;
         governor: string;
+        data: any[];
     }
 
     // Syntax for adding proprties to `global` (ex "global.log")
@@ -31,6 +35,7 @@ declare global {
     }
 }
 
+genesis();
 let mentat = new Mentat();
 
 // When compiling TS to JS and bundling with rollup, the line numbers and file names in error messages change

@@ -1,4 +1,3 @@
-import { CreepSkeletonFactory } from "creep-factory";
 import { Role } from "enums";
 import { Report } from "report";
 import { roleHarvester } from "roles/role.harvester";
@@ -7,6 +6,7 @@ import { generateCreepName, getNumCreepsByRole } from "utils/utils";
 
 export class Governor {
     room: Room;
+    id: string;
     creeps: Creep[] = [];
     exploitRatio = 0;
     MIN_HARVESTERS = 5;
@@ -15,7 +15,7 @@ export class Governor {
 
     constructor(room: Room) {
         this.room = room;
-        this.name = room.name;
+        this.id = room.name;
     }
 
     getReport(): Report{
@@ -31,6 +31,7 @@ export class Governor {
         }
 
         let report: Report = {
+            govId: this.id,
             energy: energy,
             exploitRatio: this.exploitRatio,
             threatLevel: this.room.find(FIND_HOSTILE_CREEPS).length,
@@ -47,20 +48,34 @@ export class Governor {
     spawnCreep(role: Role): void {
         // Use the factory to generate a creep with the desirable
         // characteristics of its role.
-        let creepSkeleton = CreepSkeletonFactory.getCreepSkeleton(role);
-        creepSkeleton.memory.governor = this.room.name;
 
         // TODO: Resolve Spawns dynamically
         Game.spawns['Spawn1'].spawnCreep(
-            creepSkeleton.body,
-            generateCreepName(creepSkeleton.memory.role),
-            { memory: creepSkeleton.memory }
+            Memory.bodyTemplates[role],
+            generateCreepName(role),
+            { memory: {role: role, governor: this.id, data: this.initData(role)} }
         );
+    }
+
+    initData(role: Role): any[] {
+        switch (role) {
+            case (Role.StarterHarvester): {
+                return [false];
+            }
+            case (Role.Harvester): {
+                return [false];
+            }
+            case (Role.Thopter): {
+                return [false];
+            }
+            case (Role.Pyon): {
+                return [false];
+            }
+        }
     }
 
     /**
      * Executes orders given by Mentat.
-     * TODO: actually give orders to the governor
      */
     executeOrders(): void {
         this.maintainCreepLevels();
@@ -93,9 +108,12 @@ export class Governor {
 
     // This exists becuase later groups will be run by the governors
     runCreeps(): void {
-        for (let i = 0; i < creeps.length; ++i) {
-            let creep = creeps[i];
+        for (let i = 0; i < this.creeps.length; ++i) {
+            let creep = this.creeps[i];
             switch (creep.memory.role) {
+                case (Role.StarterHarvester): {
+                    roleHarvester.run(creep);
+                }
                 case (Role.Harvester): {
                     roleHarvester.run(creep);
                 }
@@ -103,9 +121,6 @@ export class Governor {
                     roleHarvester.run(creep);
                 }
                 case (Role.Pyon): {
-                    roleHarvester.run(creep);
-                }
-                case (Role.StarterHarvester): {
                     roleHarvester.run(creep);
                 }
             }
