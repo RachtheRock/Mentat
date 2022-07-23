@@ -3,15 +3,16 @@ import { Report } from "report";
 
 
 export class Mentat {
-    governors: Map<string, Governor>;
+    //governors: Map<string, Governor>;
+    governors: Governor[];
 
     constructor() {
-        this.governors = new Map<string, Governor>();
+        this.governors = []
         // Create a governor for each room under mentat's control
         for (const roomName in Game.rooms) {
             let controller = Game.rooms[roomName].controller
             if (controller !== undefined && controller.my) {
-                this.governors.set(controller.room.name, new Governor(controller.room));
+                this.governors.push(new Governor(controller.room))
             }
         }
     }
@@ -24,12 +25,11 @@ export class Mentat {
     run(): void {
         // Get reports from governors
         let reports = this.getAllReports()
-        console.log(JSON.stringify(this.governors))
         // Analyze reports
         let strategies = this.getStrategies(reports)
         // Command governors
         for (const govId in this.governors) {
-            this.governors.get(govId)!.executeOrders();
+            this.governors[govId]!.executeOrders();
         }
     }
 

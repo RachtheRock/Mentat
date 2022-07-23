@@ -1,6 +1,6 @@
 import { StarterHarvesterIndex } from "enums";
 
-export var roleHarvester = {
+export var roleStarterHarvester = {
     run(creep: Creep): void {
 
         // If the creep is out of energy then it goes to harvest more
@@ -49,7 +49,7 @@ export var roleHarvester = {
 
             if (closest_source) {
                 if (creep.harvest(closest_source) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(closest_source);
+                    creep.moveTo(closest_source, {range:1});
                 }
             }
         }

@@ -17,6 +17,7 @@ export function genesis(): void {
     }
     else {
         console.log('Genesis: already begun')
+
     }
 }
 

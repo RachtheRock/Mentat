@@ -1,4 +1,5 @@
 import { Role } from "enums";
+import { Governor } from "governor";
 
 
 /**
@@ -17,14 +18,14 @@ export function getNumCreepsByRole(role: Role): number {
 }
 
 /**
- * Generate a name of the creep in the format {ROLE}{GAME_TIME}
+ * Generate a name of the creep in the format {ROLE}{GAME_TIME}-{Governor Name}
  * For example, if a creep with a Harvester role was spawned at tick 4,
  * its name would be 'Harvester4'.
  * @param role The Role of the creep
  * @returns The formatted name
  */
-export function generateCreepName(role: Role): string {
-    return `${Role[role]}${Game.time}`;
+export function generateCreepName(role: Role, governorName: string): string {
+    return `${Role[role]}${Game.time}-${governorName}`;
 }
 
 /**
