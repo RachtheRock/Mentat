@@ -1,17 +1,12 @@
 export enum Role {
     StarterHarvester = 0,
-    StarterPyon = 1,
-    Harvester = 2,
-    Thopter = 3,
-    Pyon = 5,
+    Harvester = 1,
+    Thopter = 2,
+    Pyon = 3,
 }
 
 export enum StarterHarvesterIndex {
     Harvesting = 0
-}
-
-export enum StarterPyonIndex {
-    Pyonging = 0
 }
 
 export enum HarvesterIndex {
@@ -24,4 +19,10 @@ export enum ThopterIndex {
 
 export enum PyonIndex {
     Pyoning = 0
+}
+
+// Mentat gives these enums to the governors
+export enum MentatCommands {
+    dynamicHarvesting = 0,
+    staticHarvesting = 1
 }

@@ -9,6 +9,7 @@ export var roleStarterHarvester = {
         }
 
         // If the creep is full of energy then it goes to distribute it in the spawn or an extension
+        // If all the spawns and extensions are full, then the creep builds construction sites
         else if (!creep.memory.data[StarterHarvesterIndex.Harvesting] && creep.store.energy == creep.store.getCapacity()){
             creep.memory.data[StarterHarvesterIndex.Harvesting] = true;
         }
@@ -17,7 +18,6 @@ export var roleStarterHarvester = {
         if (creep.memory.data[StarterHarvesterIndex.Harvesting]) {
 
             // We find the structures in the room that can be "refilled", first we look for towers
-
             let structure = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, {
                 filter: function(struct){
                     // looking for towers that are low on energy
@@ -39,6 +39,29 @@ export var roleStarterHarvester = {
                     creep.moveTo(structure);
                 }
 
+            }
+
+            // If there are no empty spawns then the creeps build
+            else {
+                let construction_site = creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
+
+                // If construction sites exist, we build on them
+                if(construction_site != undefined){
+
+                    if (creep.build(construction_site) == ERR_NOT_IN_RANGE){
+                        creep.moveTo(construction_site);
+                    }
+                }
+
+                // If there are no construction sites the creep upgrades the RC
+                // Goes to deposit energy in controller
+                else {
+                    if (creep.memory.data[StarterHarvesterIndex.Harvesting] && creep.room.controller) {
+                        if (creep.upgradeController(creep.room.controller) == ERR_NOT_IN_RANGE) {
+                            creep.moveTo(creep.room.controller);
+                        }
+                    }
+                }
             }
 
         }

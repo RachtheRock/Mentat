@@ -1,9 +1,9 @@
+import { MentatCommands } from "enums";
 import { Governor } from "governor";
 import { Report } from "report";
 
 
 export class Mentat {
-    //governors: Map<string, Governor>;
     governors: Governor[];
 
     constructor(isNew: boolean) {
@@ -32,25 +32,46 @@ export class Mentat {
         // Analyze reports
         let strategies = this.getStrategies(reports)
         // Command governors
-        for (const govId in this.governors) {
-            this.governors[govId]!.executeOrders();
+        for (const governor of strategies.keys()){
+            // The strategy of that the mentat commands the governor
+            let strat = strategies.get(governor)
+            if (strat != undefined){
+                governor.executeOrders(strat);
+            }
+            else {
+                console.log("A governor did not get a command")
+            }
         }
     }
 
     /**
-     * Get a list containing reports from all governors.
+     * Get a maping containing governor names mapped to their respective reports
      * @returns The governors' reports
      */
-    getAllReports(): Report[] {
-        let reports: Report[] = [];
-        for (const gov of this.governors.values()) {
-            reports.push(gov.getReport());
+    getAllReports(): Map<Governor, Report> {
+        let reports = new Map();
+        for (const govId in this.governors) {
+            reports.set(this.governors[govId], this.governors[govId].getReport());
         }
         return reports;
     }
 
-    getStrategies(reports: Report[]): void {
-        // TODO
+    /*
+    Processes the reports and generate commands for the governors
+    */
+    getStrategies(reports: Map<Governor, Report>): Map<Governor, MentatCommands[]> {
+        let strategies = new Map();
+        // For each governor we analyze the report and return mentat comamands
+        for (const govId of reports.keys()){
+            let report = reports.get(govId);
+            if (report!.rcl === 1){
+                strategies.set(govId, [MentatCommands.dynamicHarvesting]);
+            }
+            else {
+                strategies.set(govId, [MentatCommands.staticHarvesting]);
+            }
+        }
+        return strategies;
     }
 
     commandGovernors(): void {
