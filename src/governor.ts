@@ -167,7 +167,7 @@ export class Governor {
         else {
             // If there are too many harvesters make a thopter
             // This first conditional is to avoid divide by zero
-            if (numStarterHarvesters < 1){
+            if (numStarterHarvesters < 4){
                 this.spawnCreep(Role.StarterHarvester);
             }
             else if (numHarvesters > 0 && numThopters == 0){
