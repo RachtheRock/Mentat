@@ -7,10 +7,12 @@ export class Mentat {
     governors: Governor[];
 
     constructor(isNew: boolean) {
+        console.log("starting mentat construction");
     /*
     INPUTS: isNew - is the Mentat a newly created one or are we just reconstructing it?
     */
         this.governors = []
+        console.log("creating governors");
         // Create a governor for each room under mentat's control
         // These governors are assumed to not be newly created
         for (const roomName in Game.rooms) {
@@ -64,11 +66,12 @@ export class Mentat {
         // For each governor we analyze the report and return mentat comamands
         for (const govId of reports.keys()){
             let report = reports.get(govId);
+            // TODO: Make it obvious which commands are being assigned
             if (report!.rcl === 1){
-                strategies.set(govId, [MentatCommands.dynamicHarvesting]);
+                strategies.set(govId, [true]);
             }
             else {
-                strategies.set(govId, [MentatCommands.staticHarvesting]);
+                strategies.set(govId, [false]);
             }
         }
         return strategies;
