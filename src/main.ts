@@ -80,7 +80,8 @@ export const loop = ErrorMapper.wrapLoop(() => {
 
                                 // Look for the creep in the source object's list of creeps and remove it
                                 for (let k = 0; k < source.assignedHarvesters.length; ++k){
-                                    if(Game.getObjectById(source.assignedHarvesters[k])!.name === name){
+                                    // If we find a creep that is no longer in the game
+                                    if(Game.getObjectById(source.assignedHarvesters[k]) == null){
                                         source.assignedHarvesters.splice(k,1);
                                         break;
                                     }
