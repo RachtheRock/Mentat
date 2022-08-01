@@ -159,17 +159,18 @@ export class Governor {
 
         if (mentatCommands[MentatCommands.dynamicHarvesting]){
             // We make a special starter harvester
-            if (numStarterHarvesters < 1) {
+            if (numStarterHarvesters < 4) {
                 this.spawnCreep(Role.StarterHarvester)
             }
         }
 
         else {
-            // If there are too many harvesters make a thopter
-            // This first conditional is to avoid divide by zero
+            // Right now we maintain 4 starter harvesters
             if (numStarterHarvesters < 4){
                 this.spawnCreep(Role.StarterHarvester);
             }
+            // If there are too many harvesters make a thopter
+            // This first conditional is to avoid divide by zero
             else if (numHarvesters > 0 && numThopters == 0){
                 this.spawnCreep(Role.Thopter);
             }
