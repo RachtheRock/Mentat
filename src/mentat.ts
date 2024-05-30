@@ -7,12 +7,10 @@ export class Mentat {
     governors: Governor[];
 
     constructor(isNew: boolean) {
-        console.log("starting mentat construction");
     /*
     INPUTS: isNew - is the Mentat a newly created one or are we just reconstructing it?
     */
         this.governors = []
-        console.log("creating governors");
         // Create a governor for each room under mentat's control
         // These governors are assumed to not be newly created
         for (const roomName in Game.rooms) {
@@ -28,6 +26,7 @@ export class Mentat {
      * Gathers reports, analyzes them, devises an overall strategy,
      * and then commands the governors to implement specific strategies.
      */
+
     run(): void {
         // Get reports from governors
         let reports = this.getAllReports()
