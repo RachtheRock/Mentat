@@ -43,6 +43,7 @@ export class Mentat {
                 console.log("A governor did not get a command")
             }
         }
+    console.log("git hub is linked!");
     }
 
     /**
