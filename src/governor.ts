@@ -12,7 +12,7 @@ export class Governor {
     name: string;
     creeps: Id<Creep>[] = [];
     spawningCreeps: string[] = [];
-    rcl: Number = 0;
+    rcl: number = 0;
     // The sources that the governor is static minning
     sourcesUnderControl: EnergySource[] = [];
     exploitRatio = 0;
@@ -169,6 +169,7 @@ export class Governor {
             if (numStarterHarvesters < 4){
                 this.spawnCreep(Role.StarterHarvester);
             }
+
             // If there are too many harvesters make a thopter
             // This first conditional is to avoid divide by zero
             else if (numHarvesters > 0 && numThopters == 0){

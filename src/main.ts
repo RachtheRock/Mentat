@@ -7,7 +7,7 @@ import { ErrorMapper } from "utils/ErrorMapper";
 declare global {
     /*
         Example types, expand on these or remove them and add your own.
-        Note: Values, properties defined here do no fully *exist* by this type definiton alone.
+        Note: Values, properties defined here do not fully *exist* by this type definiton alone.
             You must also give them an implemention if you would like to use them. (ex. actually setting a `role` property in a Creeps memory)
 
         Types added in this `global` block are in an ambient, global context. This is needed because `main.ts` is a module file (uses import or export).
@@ -19,10 +19,12 @@ declare global {
         log: any;
         awake: boolean;
         bodyTemplates: BodyPartConstant[][];
-        // An array of arrays formatted as [governor name, [sourceIDs] ], ... Must be stored in memory so that on reset
-        // the governors can be reassinged the sources they are to control. I am not super happy with this as I would rather
-        // just use a Map.
-        governorSourcesMap: Array<any>
+        /*
+            An array of arrays formatted as [governor name, [sourceIDs] ], ... Must be stored in memory so that on reset
+            the governors can be reassinged the sources they are to control. I am not super happy with this as I would rather
+            just use a Map.
+        */
+         governorSourcesMap: Array<any>
     }
 
     interface CreepMemory {
@@ -61,6 +63,7 @@ export const loop = ErrorMapper.wrapLoop(() => {
         if (!(name in Game.creeps)) {
             // The object of the dead creep
             let deadCreep =  Memory.creeps[name];
+
             // We get its role and clear its name out from various other areas if needed
             let role = deadCreep.role;
 

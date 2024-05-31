@@ -1,3 +1,7 @@
+/*
+A thopter's job is to ferry energy minned by a harvester back to spawn or an energy container
+*/
+
 import { HarvesterIndex, ThopterIndex } from "enums"
 import { inRange } from "lodash";
 import { goTo } from "goTo";
@@ -8,6 +12,7 @@ export var roleThopter = {
         // Check to see if thopter has a target. NOTE: if the harvester dies, it will no longer have a valid id
         // so harvesterTarget will just become null.
         let harvesterTarget = Game.getObjectById(creep.memory.data[ThopterIndex.HarvesterTarget]);
+
         // If the harvesterTarget is null or undefined and the thopter is outbound then we request for the thopter to be assigned a new target
         if (!harvesterTarget && creep.memory.data[ThopterIndex.Outbound]){
             // We put in the request

@@ -1,3 +1,10 @@
+/*
+The starter harvester is only used at the very beginning of the game when we can only spawn a few creeps.
+After the first few hundred ticks we switch harvesting modes to use the specialized thopters and harvester
+which are more cost effective, better at resource minning, and require less cpu.
+*/
+
+
 import { StarterHarvesterIndex } from "enums";
 
 export var roleStarterHarvester = {

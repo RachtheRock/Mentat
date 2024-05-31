@@ -5,6 +5,14 @@ export enum Role {
     Pyon = 3,
 }
 
+/*
+The type indices are a cleaver way to store creep data via memory.
+Each type of creep has different attribute variables which are stored
+in a big string array in its memory. To access this just use the enums here.
+For example, HarvesterIndex enums allow you to access the boolean variable
+ArrivedAtSource, the string id of the source, and the boolean variable
+ThopterIncomming all in memory.
+*/
 export enum StarterHarvesterIndex {
     Harvesting = 0
 }
