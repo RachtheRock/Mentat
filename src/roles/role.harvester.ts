@@ -4,6 +4,7 @@ giving energy to thopters.
 */
 
 import { HarvesterIndex } from "enums"
+import { goTo } from "goTo";
 
 export var roleHarvester = {
     run(creep: Creep): void {
@@ -27,7 +28,17 @@ export var roleHarvester = {
                         creep.memory.data[HarvesterIndex.ArrivedAtSource] = true;
                     }
                     else{
-                        creep.moveTo(source, {range:1});
+                        // We move the harvester, notice that this is setup for cross room travel
+                        //let sourceRoom = source.room;
+
+                        // If the harvester is in the same room as the thopter
+                        if (source.room === creep.room){
+                            creep.moveTo(source, {range:1});
+                        }
+
+                        else {
+                            goTo(creep, source.room.name);
+                        }
                     }
                 }
             }

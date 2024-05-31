@@ -9,6 +9,14 @@ var Role;
     Role[Role["Thopter"] = 2] = "Thopter";
     Role[Role["Pyon"] = 3] = "Pyon";
 })(Role || (Role = {}));
+/*
+The type indices are a cleaver way to store creep data via memory.
+Each type of creep has different attribute variables which are stored
+in a big string array in its memory. To access this just use the enums here.
+For example, HarvesterIndex enums allow you to access the boolean variable
+ArrivedAtSource, the string id of the source, and the boolean variable
+ThopterIncomming all in memory.
+*/
 var StarterHarvesterIndex;
 (function (StarterHarvesterIndex) {
     StarterHarvesterIndex[StarterHarvesterIndex["Harvesting"] = 0] = "Harvesting";
@@ -40,10 +48,17 @@ var PyonIndex;
 // Later on they could be interfaces
 var MentatCommands;
 (function (MentatCommands) {
-    // Boolean, if we are dynamically harvesting
-    MentatCommands[MentatCommands["dynamicHarvesting"] = 0] = "dynamicHarvesting";
+    // Boolean, if we are harvesting using starter-harvesters
+    MentatCommands[MentatCommands["dumbHarvesting"] = 0] = "dumbHarvesting";
+    // Boolean, if we are dynamically harvesting using thopters and harvesters
+    MentatCommands[MentatCommands["dynamicHarvesting"] = 1] = "dynamicHarvesting";
 })(MentatCommands || (MentatCommands = {}));
 
+/*
+The starter harvester is only used at the very beginning of the game when we can only spawn a few creeps.
+After the first few hundred ticks we switch harvesting modes to use the specialized thopters and harvester
+which are more cost effective, better at resource minning, and require less cpu.
+*/
 var roleStarterHarvester = {
     run(creep) {
         // If the creep is out of energy then it goes to harvest more
@@ -109,6 +124,55 @@ var roleStarterHarvester = {
     }
 };
 
+/* Creep must have exit_pos and exit_room in its memory
+ A function that moves creeps to another room
+ Returns True if the creep has reached the room
+*/
+function goTo(creep, target_room) {
+    // If the creep is already in the room we return true
+    if (creep.pos.roomName == target_room) {
+        return true;
+    }
+    // If the creep has an exit_pos
+    if (creep.memory.exit_pos && creep.memory.exit_room) {
+        // If we have reached the exit position we delete it from the creeps memory, ensuring that in the next tick
+        // the creep is assigned a new exit posistion inside its new room and that it moves foward
+        // I know this comparision is long but I tried to comapre the two arrays and it didn't work
+        if (creep.pos.x == creep.memory.exit_pos[0] && creep.pos.y == creep.memory.exit_pos[1] && creep.pos.roomName == creep.memory.exit_room) {
+            creep.memory.exit_pos = undefined;
+            creep.memory.exit_room = undefined;
+        }
+        // If we have not reached the exit position, we move towards it
+        else {
+            creep.moveTo(new RoomPosition(creep.memory.exit_pos[0], creep.memory.exit_pos[1], creep.memory.exit_room));
+        }
+    }
+    // If there is not an exit postion defined we create one
+    else {
+        // The exit direction of the room
+        let exitDir = creep.room.findExitTo(target_room);
+        // If the exit direction exists (typescript requires us to put this in)
+        if (exitDir != -2 && exitDir != -10) {
+            // The exit position
+            let exit_pos = creep.pos.findClosestByPath(exitDir);
+            // If the exit position exists (again typescript requires us to put this in)
+            if (exit_pos) {
+                creep.moveTo(exit_pos);
+                creep.memory.exit_pos = [exit_pos.x, exit_pos.y];
+                creep.memory.exit_room = exit_pos.roomName;
+            }
+        }
+    }
+    // We return false since the creep is not yet at its destination.
+    // It may be possible that the creep moved to the destination in this tick,
+    // but this does not count as the creep being at the destination.
+    return false;
+}
+
+/*
+This harvester goes to its assigned source and stays there for life, ideally minning and
+giving energy to thopters.
+*/
 var roleHarvester = {
     run(creep) {
         // The source that the harvester is assigned to
@@ -127,7 +191,15 @@ var roleHarvester = {
                         creep.memory.data[HarvesterIndex.ArrivedAtSource] = true;
                     }
                     else {
-                        creep.moveTo(source, { range: 1 });
+                        // We move the harvester, notice that this is setup for cross room travel
+                        //let sourceRoom = source.room;
+                        // If the harvester is in the same room as the thopter
+                        if (source.room === creep.room) {
+                            creep.moveTo(source, { range: 1 });
+                        }
+                        else {
+                            goTo(creep, source.room.name);
+                        }
                     }
                 }
             }
@@ -143,10 +215,11 @@ var roleHarvester = {
  * @param role The Role of the creep
  * @returns Number of creeps that match the role
  */
-function getNumCreepsByRole(role) {
+function getNumCreepsByRole(role, governorName) {
     let matches = 0;
     for (const name in Game.creeps) {
-        if (Game.creeps[name].memory.role === role) {
+        // If the creep is the desired role AND if the creep belongs to the correct governor
+        if (Game.creeps[name].memory.role === role && Game.creeps[name].memory.governor === governorName) {
             ++matches;
         }
     }
@@ -232,50 +305,9 @@ class EnergySource {
     }
 }
 
-// Creep must have exit_pos and exit_room in its memory
-// A function that moves creeps to another room
-// Returns True if the creep has reached the room
-function goTo(creep, target_room) {
-    // If the creep is already in the room we return true
-    if (creep.pos.roomName == target_room) {
-        return true;
-    }
-    // If the creep has an exit_pos
-    if (creep.memory.exit_pos && creep.memory.exit_room) {
-        // If we have reached the exit position we delete it from the creeps memory, ensuring that in the next tick
-        // the creep is assigned a new exit posistion inside its new room and that it moves foward
-        // I know this comparision is long but I tried to comapre the two arrays and it didn't work
-        if (creep.pos.x == creep.memory.exit_pos[0] && creep.pos.y == creep.memory.exit_pos[1] && creep.pos.roomName == creep.memory.exit_room) {
-            creep.memory.exit_pos = undefined;
-            creep.memory.exit_room = undefined;
-        }
-        // If we have not reached the exit position, we move towards it
-        else {
-            creep.moveTo(new RoomPosition(creep.memory.exit_pos[0], creep.memory.exit_pos[1], creep.memory.exit_room));
-        }
-    }
-    // If there is not an exit postion defined we create one
-    else {
-        // The exit direction of the room
-        let exitDir = creep.room.findExitTo(target_room);
-        // If the exit direction exists (typescript requires us to put this in)
-        if (exitDir != -2 && exitDir != -10) {
-            // The exit position
-            let exit_pos = creep.pos.findClosestByPath(exitDir);
-            // If the exit position exists (again typescript requires us to put this in)
-            if (exit_pos) {
-                creep.moveTo(exit_pos);
-                creep.memory.exit_pos = [exit_pos.x, exit_pos.y];
-                creep.memory.exit_room = exit_pos.roomName;
-            }
-        }
-    }
-    // We return false since the creep is not yet at its destination.
-    // It may be possible that the creep moved to the destination in this tick,
-    // but this does not count as the creep being at the destination.
-    return false;
-}
-
+/*
+A thopter's job is to ferry energy minned by a harvester back to spawn or an energy container
+*/
 // The job of the Thopter is to carry the energy minned by the harvesters back to storage
 var roleThopter = {
     run(creep) {
@@ -388,6 +420,7 @@ class Governor {
         this.creeps = [];
         this.spawningCreeps = [];
         this.rcl = 0;
+        this.previousMentatCommands = [];
         // The sources that the governor is static minning
         this.sourcesUnderControl = [];
         this.exploitRatio = 0;
@@ -478,45 +511,40 @@ class Governor {
         // Builds the necessary buildings based upon RCL
         this.build();
     }
-    /**
-     * Generates a report that mentat can process
-     */
-    getReport() {
-        let energy = Game.rooms[this.name].energyAvailable;
-        let storages = Game.rooms[this.name].find(FIND_STRUCTURES);
+    /*
+     * Generates a report that mentat can process. I removed this feature since it was redundant but I kept this for funzies
+    getReport(mentatCommands: MentatCommands[]): Report{
+        let energy: number = Game.rooms[this.name]!.energyAvailable;
+
+        let storages: AnyStructure[]  = Game.rooms[this.name].find(FIND_STRUCTURES);
+
         for (let i = 0; i < storages.length; ++i) {
             let storage = storages[i];
             if (storage.structureType === STRUCTURE_CONTAINER || storage.structureType === STRUCTURE_STORAGE) {
                 energy += storage.store[RESOURCE_ENERGY];
             }
         }
-        let report = {
-            govId: this.name,
-            energy: energy,
-            exploitRatio: this.exploitRatio,
-            threatLevel: Game.rooms[this.name].find(FIND_HOSTILE_CREEPS).length,
-            rcl: Game.rooms[this.name].controller.level,
-        };
-        return report;
+
     }
+    */
     /**
      * Spawns creeps when necessary so that creep levels are properly maintained.
      */
     maintainCreepLevels(mentatCommands) {
         // Check to see if any of our spawning creeps have been spawned
         this.checkSpawningCreeps();
-        let numStarterHarvesters = getNumCreepsByRole(Role.StarterHarvester);
-        let numHarvesters = getNumCreepsByRole(Role.Harvester);
-        let numThopters = getNumCreepsByRole(Role.Thopter);
-        getNumCreepsByRole(Role.Thopter);
-        if (mentatCommands[MentatCommands.dynamicHarvesting]) {
+        let numStarterHarvesters = getNumCreepsByRole(Role.StarterHarvester, this.name);
+        let numHarvesters = getNumCreepsByRole(Role.Harvester, this.name);
+        let numThopters = getNumCreepsByRole(Role.Thopter, this.name);
+        getNumCreepsByRole(Role.Thopter, this.name);
+        if (mentatCommands[MentatCommands.dumbHarvesting]) {
             // We make a special starter harvester
             if (numStarterHarvesters < 4) {
                 this.spawnCreep(Role.StarterHarvester);
             }
         }
-        else {
-            // Right now we maintain 4 starter harvesters
+        else if (mentatCommands[MentatCommands.dynamicHarvesting]) {
+            // we maintain only 1 starter harvester
             if (numStarterHarvesters < 4) {
                 this.spawnCreep(Role.StarterHarvester);
             }
@@ -531,6 +559,9 @@ class Governor {
             // If there are sources that are not being fully exploited then spawn a harvester
             else if (this.getUnexpliotedSourceID() != undefined) {
                 this.spawnCreep(Role.Harvester);
+            }
+            else {
+                console.log("hi");
             }
         }
     }
@@ -714,57 +745,50 @@ class Mentat {
      * and then commands the governors to implement specific strategies.
      */
     run() {
-        // Get reports from governors
-        let reports = this.getAllReports();
         // Analyze reports
-        let strategies = this.getStrategies(reports);
+        let commands = this.getAllCommands();
         // Command governors
-        for (const governor of strategies.keys()) {
+        for (const governor of commands.keys()) {
             // The strategy of that the mentat commands the governor
-            let strat = strategies.get(governor);
-            if (strat != undefined) {
-                governor.executeOrders(strat);
+            let command = commands.get(governor);
+            if (command != undefined) {
+                governor.executeOrders(command);
             }
             else {
                 console.log("A governor did not get a command");
             }
         }
-        console.log("git hub is linked!");
-    }
-    /**
-     * Get a maping containing governor names mapped to their respective reports
-     * @returns The governors' reports
-     */
-    getAllReports() {
-        let reports = new Map();
-        for (const govId in this.governors) {
-            reports.set(this.governors[govId], this.governors[govId].getReport());
-        }
-        return reports;
     }
     /*
     Processes the reports and generate commands for the governors
     */
-    getStrategies(reports) {
-        let strategies = new Map();
+    getAllCommands() {
+        let allCommands = new Map();
         // For each governor we analyze the report and return mentat comamands
-        for (const govId of reports.keys()) {
-            let report = reports.get(govId);
-            // TODO: Make it obvious which commands are being assigned
-            if (report.rcl === 1) {
-                strategies.set(govId, [true]);
+        for (const gov of this.governors) {
+            const starterHarvesterCount = getNumCreepsByRole(Role.StarterHarvester, gov.name);
+            // If we have made four starter harvesters or if we are already in dyanmic harvesting mode then we dynamic harvest
+            if (starterHarvesterCount === 4 || gov.previousMentatCommands[MentatCommands.dynamicHarvesting]) {
+                allCommands.set(gov, [false, true]);
             }
             else {
-                strategies.set(govId, [false]);
+                allCommands.set(gov, [true, false]);
             }
+            /*
+            if (report!.rcl === 1){
+                strategies.set(gov.name, [true]);
+            }
+            */
         }
-        return strategies;
+        return allCommands;
     }
     commandGovernors() {
         // TODO
     }
 }
 
+// A function that returns a Mentat instance
+// Runs everytime screeps deletes all global objects
 function genesis() {
     if (Memory.awake === undefined) {
         console.log('Genesis: begin');

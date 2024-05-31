@@ -7,10 +7,11 @@ import { Governor } from "governor";
  * @param role The Role of the creep
  * @returns Number of creeps that match the role
  */
-export function getNumCreepsByRole(role: Role): number {
+export function getNumCreepsByRole(role: Role, governorName: string): number {
     let matches = 0;
     for (const name in Game.creeps) {
-        if (Game.creeps[name].memory.role === role) {
+        // If the creep is the desired role AND if the creep belongs to the correct governor
+        if (Game.creeps[name].memory.role === role && Game.creeps[name].memory.governor === governorName) {
             ++matches;
         }
     }

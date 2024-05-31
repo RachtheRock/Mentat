@@ -1,5 +1,4 @@
 import { HarvesterIndex, MentatCommands, Role, ThopterIndex } from "enums";
-import { Report } from "report";
 import { roleStarterHarvester } from "roles/role.starter-harvester";
 import { roleHarvester } from "roles/role.harvester";
 import { generateCreepName, getNumCreepsByRole } from "utils/utils";
@@ -13,6 +12,8 @@ export class Governor {
     creeps: Id<Creep>[] = [];
     spawningCreeps: string[] = [];
     rcl: number = 0;
+    previousMentatCommands: any[] = [];
+
     // The sources that the governor is static minning
     sourcesUnderControl: EnergySource[] = [];
     exploitRatio = 0;
@@ -120,10 +121,9 @@ export class Governor {
         this.build()
     }
 
-    /**
-     * Generates a report that mentat can process
-     */
-    getReport(): Report{
+    /*
+     * Generates a report that mentat can process. I removed this feature since it was redundant but I kept this for funzies
+    getReport(mentatCommands: MentatCommands[]): Report{
         let energy: number = Game.rooms[this.name]!.energyAvailable;
 
         let storages: AnyStructure[]  = Game.rooms[this.name].find(FIND_STRUCTURES);
@@ -135,15 +135,8 @@ export class Governor {
             }
         }
 
-        let report: Report = {
-            govId: this.name,
-            energy: energy,
-            exploitRatio: this.exploitRatio,
-            threatLevel: Game.rooms[this.name].find(FIND_HOSTILE_CREEPS).length,
-            rcl: Game.rooms[this.name].controller!.level,
-        };
-        return report;
     }
+    */
 
     /**
      * Spawns creeps when necessary so that creep levels are properly maintained.
@@ -152,20 +145,20 @@ export class Governor {
         // Check to see if any of our spawning creeps have been spawned
         this.checkSpawningCreeps();
 
-        let numStarterHarvesters = getNumCreepsByRole(Role.StarterHarvester);
-        let numHarvesters = getNumCreepsByRole(Role.Harvester);
-        let numThopters = getNumCreepsByRole(Role.Thopter);
-        let numPyons = getNumCreepsByRole(Role.Thopter);
+        let numStarterHarvesters = getNumCreepsByRole(Role.StarterHarvester, this.name);
+        let numHarvesters = getNumCreepsByRole(Role.Harvester, this.name);
+        let numThopters = getNumCreepsByRole(Role.Thopter, this.name);
+        let numPyons = getNumCreepsByRole(Role.Thopter, this.name);
 
-        if (mentatCommands[MentatCommands.dynamicHarvesting]){
+        if (mentatCommands[MentatCommands.dumbHarvesting]){
             // We make a special starter harvester
             if (numStarterHarvesters < 4) {
                 this.spawnCreep(Role.StarterHarvester)
             }
         }
 
-        else {
-            // Right now we maintain 4 starter harvesters
+        else if (mentatCommands[MentatCommands.dynamicHarvesting]) {
+            // we maintain only 1 starter harvester
             if (numStarterHarvesters < 4){
                 this.spawnCreep(Role.StarterHarvester);
             }
@@ -181,6 +174,10 @@ export class Governor {
             // If there are sources that are not being fully exploited then spawn a harvester
             else if (this.getUnexpliotedSourceID() != undefined){
                 this.spawnCreep(Role.Harvester);
+            }
+
+            else {
+                console.log("hi");
             }
         }
     }

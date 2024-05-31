@@ -43,6 +43,9 @@ export enum PyonIndex {
 // Right now Mentat Commands are just enums for simplicity
 // Later on they could be interfaces
 export enum MentatCommands {
-    // Boolean, if we are dynamically harvesting
-    dynamicHarvesting = 0,
+    // Boolean, if we are harvesting using starter-harvesters
+    dumbHarvesting = 0,
+
+    // Boolean, if we are dynamically harvesting using thopters and harvesters
+    dynamicHarvesting = 1
 }

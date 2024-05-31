@@ -1,6 +1,7 @@
-// Creep must have exit_pos and exit_room in its memory
-// A function that moves creeps to another room
-// Returns True if the creep has reached the room
+/* Creep must have exit_pos and exit_room in its memory
+ A function that moves creeps to another room
+ Returns True if the creep has reached the room
+*/
 
 export function goTo(creep:Creep, target_room:string):boolean{
     // If the creep is already in the room we return true

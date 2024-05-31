@@ -1,6 +1,6 @@
-import { MentatCommands } from "enums";
+import { MentatCommands, Role } from "enums";
 import { Governor } from "governor";
-import { Report } from "report";
+import { generateCreepName, getNumCreepsByRole } from "utils/utils";
 
 
 export class Mentat {
@@ -28,16 +28,14 @@ export class Mentat {
      */
 
     run(): void {
-        // Get reports from governors
-        let reports = this.getAllReports()
         // Analyze reports
-        let strategies = this.getStrategies(reports)
+        let commands = this.getAllCommands()
         // Command governors
-        for (const governor of strategies.keys()){
+        for (const governor of commands.keys()){
             // The strategy of that the mentat commands the governor
-            let strat = strategies.get(governor)
-            if (strat != undefined){
-                governor.executeOrders(strat);
+            let command = commands.get(governor)
+            if (command != undefined){
+                governor.executeOrders(command);
             }
             else {
                 console.log("A governor did not get a command")
@@ -45,35 +43,32 @@ export class Mentat {
         }
     }
 
-    /**
-     * Get a maping containing governor names mapped to their respective reports
-     * @returns The governors' reports
-     */
-    getAllReports(): Map<Governor, Report> {
-        let reports = new Map();
-        for (const govId in this.governors) {
-            reports.set(this.governors[govId], this.governors[govId].getReport());
-        }
-        return reports;
-    }
-
     /*
     Processes the reports and generate commands for the governors
     */
-    getStrategies(reports: Map<Governor, Report>): Map<Governor, MentatCommands[]> {
-        let strategies = new Map();
+    getAllCommands(): Map<Governor, MentatCommands[]> {
+        let allCommands = new Map();
+
         // For each governor we analyze the report and return mentat comamands
-        for (const govId of reports.keys()){
-            let report = reports.get(govId);
-            // TODO: Make it obvious which commands are being assigned
-            if (report!.rcl === 1){
-                strategies.set(govId, [true]);
+        for (const gov of this.governors) {
+            const starterHarvesterCount = getNumCreepsByRole(Role.StarterHarvester, gov.name);
+
+            // If we have made four starter harvesters or if we are already in dyanmic harvesting mode then we dynamic harvest
+            if (starterHarvesterCount === 4 || gov.previousMentatCommands[MentatCommands.dynamicHarvesting]){
+                allCommands.set(gov, [false, true]);
             }
+
             else {
-                strategies.set(govId, [false]);
+                allCommands.set(gov, [true, false]);
             }
+
+            /*
+            if (report!.rcl === 1){
+                strategies.set(gov.name, [true]);
+            }
+            */
         }
-        return strategies;
+        return allCommands;
     }
 
     commandGovernors(): void {
