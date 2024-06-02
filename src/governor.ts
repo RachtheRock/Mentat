@@ -14,12 +14,15 @@ export class Governor {
     rcl: number = 0;
     previousMentatCommands: any[] = [];
 
+    // Contains the spawns currently under the governor's control
+    spawns: StructureSpawn[] = [];
+
+    // Contains the extensions currently under the governor's control
+    extensions: StructureExtension[] = [];
+
     // The sources that the governor is static minning
     sourcesUnderControl: EnergySource[] = [];
     exploitRatio = 0;
-    MIN_HARVESTERS = 5;
-    MIN_THOPTERS = 5;
-    MIN_PYONS = 5;
 
     constructor(room: Room, isNew: boolean) {
         /*
@@ -34,8 +37,15 @@ export class Governor {
             this.rcl = room.controller?.level
         }
 
+        // Spawn objects of the governor
+        this.spawns = Game.rooms[this.name].find(FIND_MY_SPAWNS);
+
         // Now we create/recreate a source object for each source that the governor controls
         this.sourcesUnderControl = [];
+
+        this.extensions = Game.rooms[this.name].find(FIND_MY_STRUCTURES, {
+            filter: { structureType: STRUCTURE_EXTENSION }
+        });
 
         // If the governor is new then we begin the construction process and assign it the sources in its room
         if(isNew){
@@ -145,6 +155,27 @@ export class Governor {
         // Check to see if any of our spawning creeps have been spawned
         this.checkSpawningCreeps();
 
+        // Check to see if there is enough energy to build a creep
+        let totalCapacity = (this.spawns.length * 300) + this.extensions.length*50;
+        let totalEnergy = 0;
+
+        for (let i = 0; i < this.spawns.length; i++){
+            totalEnergy += this.spawns[i].store[RESOURCE_ENERGY]*300
+        }
+        Game.spawns['Spawn1']
+        for (let i = 0; i < this.extensions.length; i++){
+            totalEnergy += this.extensions[i].store[RESOURCE_ENERGY]*50
+        }
+
+        // If we don't have enough energy then we don't build a creep
+        if (totalEnergy != totalCapacity){
+            return
+        }
+
+        console.log("total energy capacity: "+totalCapacity);
+        console.log("total energy capacity: "+totalEnergy);
+
+        // Optimize this
         let numStarterHarvesters = getNumCreepsByRole(Role.StarterHarvester, this.name);
         let numHarvesters = getNumCreepsByRole(Role.Harvester, this.name);
         let numThopters = getNumCreepsByRole(Role.Thopter, this.name);
@@ -152,28 +183,28 @@ export class Governor {
 
         if (mentatCommands[MentatCommands.dumbHarvesting]){
             // We make a special starter harvester
-            if (numStarterHarvesters < 3) {
-                this.spawnCreep(Role.StarterHarvester)
+            if (numStarterHarvesters < 5) {
+                this.spawnCreep(Role.StarterHarvester, totalEnergy)
             }
         }
 
         else if (mentatCommands[MentatCommands.dynamicHarvesting]) {
             // we maintain only 1 starter harvester
             if (numStarterHarvesters < 1){
-                this.spawnCreep(Role.StarterHarvester);
+                this.spawnCreep(Role.StarterHarvester, totalEnergy);
             }
 
             // If there are too many harvesters make a thopter
             // This first conditional is to avoid divide by zero
             else if (numHarvesters > 0 && numThopters == 0){
-                this.spawnCreep(Role.Thopter);
+                this.spawnCreep(Role.Thopter, totalEnergy);
             }
             else if (numHarvesters/numThopters > 1) {
-                this.spawnCreep(Role.Thopter);
+                this.spawnCreep(Role.Thopter, totalEnergy);
             }
             // If there are sources that are not being fully exploited then spawn a harvester
             else if (this.getUnexpliotedSourceID() != undefined){
-                this.spawnCreep(Role.Harvester);
+                this.spawnCreep(Role.Harvester, totalEnergy);
             }
 
             else {
@@ -185,11 +216,67 @@ export class Governor {
      * Spawns a creep at Spawn1.
      * @param role The role assigned to the newly spawned creep
      */
-    spawnCreep(role: Role): void {
+    spawnCreep(role: Role, currentCapacity: number): void {
         let creepName: string = generateCreepName(role, this.name);
+
+        let bodyTemplate: BodyPartConstant[] = []
+        let spice_packets = Math.floor(currentCapacity / 50) - 1;
+
+        if (role == Role.Harvester){
+            // For harvesters we aim for a 1 work to 2 carry to 1 move ratio
+            let remainder = spice_packets % 4;
+
+            let work_num = spice_packets * 0.5;
+            let carry_num = spice_packets * 0.5;
+
+            if (remainder == 1){
+                carry_num += 1;
+            }
+            else if (remainder == 2){
+                work_num += 1;
+            }
+            else if (remainder == 3){
+                work_num += 1;
+                carry_num += 1;
+            }
+
+            for (let i = 0; i < spice_packets; i++){
+                if (i <= carry_num){
+                    bodyTemplate.push(CARRY)
+                }
+                else{
+                    bodyTemplate.push(WORK)
+                }
+            }
+
+            bodyTemplate.push(MOVE)
+        }
+
+        else if (role == Role.Thopter){
+            // For thopters we aim for a 1 work to 1 carry ratio
+            // For harvesters we aim for a 1 work to 2 carry to 1 move ratio
+            let remainder = spice_packets % 2;
+
+            let move_num = spice_packets * 0.5;
+            let carry_num = spice_packets * 0.5;
+
+            if (remainder == 1){
+                move_num += 1;
+            }
+
+            for (let i = 0; i < spice_packets; i++){
+                if (i <= carry_num){
+                    bodyTemplate.push(CARRY)
+                }
+                else{
+                    bodyTemplate.push(MOVE)
+                }
+            }
+        }
+
         // TODO: Resolve Spawns dynamically
         if (Game.spawns['Spawn1'].spawnCreep(
-            Memory.bodyTemplates[role],
+            bodyTemplate,
             creepName,
             { memory: {role: role, governor: this.name, name: creepName, data: this.initData(role)} }
         ) === OK){

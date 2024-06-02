@@ -76,7 +76,7 @@ var roleStarterHarvester = {
             let struct = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: function (struct) {
                     // looking for towers that are low on energy
-                    if (struct.structureType == STRUCTURE_CONTAINER || struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_SPAWN) {
+                    if (struct.structureType == STRUCTURE_CONTAINER || struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_SPAWN || struct.structureType == STRUCTURE_EXTENSION) {
                         // They must be low on energy
                         if (struct.store[RESOURCE_ENERGY] < struct.store.getCapacity(RESOURCE_ENERGY)) {
                             return struct;
@@ -249,18 +249,6 @@ function generateCreepName(role, governorName) {
 
 // This function creates all the construction sites in the room whenever an RCL is upgraded
 function buildRCLupgrades(room, newRCL) {
-    if (newRCL === 1) {
-        console.log("RCL 1");
-        let spawn = Game.rooms[room].find(FIND_MY_SPAWNS);
-        let spawnPos = spawn[0].pos;
-        // We construct the containers
-        let extentionPos = [];
-        extentionPos.push(new RoomPosition(spawnPos.x - 2, spawnPos.y, room));
-        extentionPos.push(new RoomPosition(spawnPos.x + 2, spawnPos.y, room));
-        for (var i = 0; i < extentionPos.length; ++i) {
-            extentionPos[i].createConstructionSite(STRUCTURE_CONTAINER);
-        }
-    }
 }
 
 // This class is used by the governors. For every energy source they control they create an energy source object
@@ -390,7 +378,7 @@ function depositInStorage(thopter) {
         let structure = thopter.pos.findClosestByPath(FIND_STRUCTURES, {
             filter: function (struct) {
                 // Thopters only refill containers and storages
-                if (struct.structureType == STRUCTURE_CONTAINER || struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_SPAWN) {
+                if (struct.structureType == STRUCTURE_CONTAINER || struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_SPAWN || struct.structureType == STRUCTURE_EXTENSION) {
                     // They must be low on energy
                     if (struct.store[RESOURCE_ENERGY] < struct.store.getCapacity(RESOURCE_ENERGY)) {
                         return struct;
@@ -452,7 +440,7 @@ class Governor {
         this.sourcesUnderControl = [];
         // If the governor is new then we begin the construction process and assign it the sources in its room
         if (isNew) {
-            buildRCLupgrades(this.name, 1);
+            buildRCLupgrades(this.name);
             // For all the sources in the room we create new sources objects and assign them to the governor
             // We also add in memory another element to the governor source map
             // Source Objects in the room
@@ -683,7 +671,7 @@ class Governor {
             if (currentRCL > this.rcl) {
                 console.log(`Room ${this.name} was upgraded to RCL ${currentRCL}.`);
                 // If the rcl has changed we build all the new avaible buildings
-                buildRCLupgrades(this.name, currentRCL);
+                buildRCLupgrades(this.name);
                 this.rcl = currentRCL;
             }
         }
@@ -780,9 +768,9 @@ class Mentat {
         let allCommands = new Map();
         // For each governor we analyze the report and return mentat comamands
         for (const gov of this.governors) {
-            const starterHarvesterCount = getNumCreepsByRole(Role.StarterHarvester, gov.name);
+            getNumCreepsByRole(Role.StarterHarvester, gov.name);
             // If we have made four starter harvesters or if we are already in dyanmic harvesting mode then we dynamic harvest
-            if (starterHarvesterCount === 3 || gov.previousMentatCommands[MentatCommands.dynamicHarvesting]) {
+            if (gov.rcl != 1 || gov.previousMentatCommands[MentatCommands.dynamicHarvesting]) {
                 allCommands.set(gov, [false, true]);
             }
             else {
@@ -16418,9 +16406,9 @@ const loop = ErrorMapper.wrapLoop(() => {
             // The object of the dead creep
             let deadCreep = Memory.creeps[name];
             // We get its role and clear its name out from various other areas if needed
-            deadCreep.role;
+            let role = deadCreep.role;
             // If the creep is a harvester we must remove its name from the energy source object that it was minning
-            if (Role.Harvester) {
+            if (role == Role.Harvester) {
                 // We get the governor that the creep belonged to and access the source object
                 // Look for the governor
                 for (let i = 0; i < mentat.governors.length; ++i) {
@@ -16444,7 +16432,7 @@ const loop = ErrorMapper.wrapLoop(() => {
                 }
             }
             // If a thopter dies we must alert its harvester that it is no longer incoming
-            if (Role.Thopter) {
+            if (role == Role.Thopter) {
                 // We get the target harvester
                 let targetHarvester = Game.getObjectById(deadCreep.data[ThopterIndex.HarvesterTarget]);
                 // If it had a target harvester

@@ -28,7 +28,7 @@ export var roleStarterHarvester = {
             let struct = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: function(struct){
                     // looking for towers that are low on energy
-                    if (struct.structureType == STRUCTURE_CONTAINER || struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_SPAWN){
+                    if (struct.structureType == STRUCTURE_CONTAINER || struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_SPAWN || struct.structureType == STRUCTURE_EXTENSION) {
                         // They must be low on energy
                         if (struct.store[RESOURCE_ENERGY] < struct.store.getCapacity(RESOURCE_ENERGY)){
                             return struct;
