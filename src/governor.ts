@@ -152,14 +152,14 @@ export class Governor {
 
         if (mentatCommands[MentatCommands.dumbHarvesting]){
             // We make a special starter harvester
-            if (numStarterHarvesters < 4) {
+            if (numStarterHarvesters < 3) {
                 this.spawnCreep(Role.StarterHarvester)
             }
         }
 
         else if (mentatCommands[MentatCommands.dynamicHarvesting]) {
             // we maintain only 1 starter harvester
-            if (numStarterHarvesters < 4){
+            if (numStarterHarvesters < 1){
                 this.spawnCreep(Role.StarterHarvester);
             }
 
@@ -177,7 +177,6 @@ export class Governor {
             }
 
             else {
-                console.log("hi");
             }
         }
     }

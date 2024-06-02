@@ -54,7 +54,7 @@ export class Mentat {
             const starterHarvesterCount = getNumCreepsByRole(Role.StarterHarvester, gov.name);
 
             // If we have made four starter harvesters or if we are already in dyanmic harvesting mode then we dynamic harvest
-            if (starterHarvesterCount === 4 || gov.previousMentatCommands[MentatCommands.dynamicHarvesting]){
+            if (starterHarvesterCount === 3 || gov.previousMentatCommands[MentatCommands.dynamicHarvesting]){
                 allCommands.set(gov, [false, true]);
             }
 

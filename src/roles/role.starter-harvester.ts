@@ -25,11 +25,10 @@ export var roleStarterHarvester = {
         if (creep.memory.data[StarterHarvesterIndex.Harvesting]) {
 
             // We find the structures in the room that can be "refilled", first we look for towers
-            let structure = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, {
+            let struct = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: function(struct){
                     // looking for towers that are low on energy
-                    if (struct.structureType == STRUCTURE_SPAWN){
-                    //if (struct.structureType == STRUCTURE_TOWER){
+                    if (struct.structureType == STRUCTURE_CONTAINER || struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_SPAWN){
                         // They must be low on energy
                         if (struct.store[RESOURCE_ENERGY] < struct.store.getCapacity(RESOURCE_ENERGY)){
                             return struct;
@@ -39,11 +38,10 @@ export var roleStarterHarvester = {
                 }
             });
 
-
             // If this structure exists the creep goes and gives it energy
-            if (structure != undefined){
-                if (creep.transfer(structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(structure);
+            if (struct != undefined){
+                if (creep.transfer(struct, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(struct);
                 }
 
             }

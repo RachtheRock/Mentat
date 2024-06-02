@@ -14,7 +14,7 @@ export function genesis(): Mentat {
         // Harvester
         Memory.bodyTemplates.push([WORK, WORK, CARRY, MOVE]);
         // Thopter
-        Memory.bodyTemplates.push([CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]);
+        Memory.bodyTemplates.push([CARRY, CARRY, WORK, MOVE, MOVE, MOVE]);
         // Pyon
         Memory.bodyTemplates.push([WORK, CARRY, CARRY, MOVE, MOVE]);
 

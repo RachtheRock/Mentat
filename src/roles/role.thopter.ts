@@ -111,10 +111,31 @@ function depositInStorage(thopter: Creep): void{
                 return null;
             }
         });
+
+        let construction_site;
+
         // If such a structure exits we deposit energy in it/try to move towards it
         if (structure){
             if (thopter.transfer(structure, RESOURCE_ENERGY) != OK){
                 thopter.moveTo(structure);
+            }
+        }
+
+        // If there is no such structure (energy deposits are full) then we go to a construction sight/maintain buildings
+        // If construction sites exist, we build on them
+        else if((construction_site = thopter.pos.findClosestByPath(FIND_CONSTRUCTION_SITES)) != undefined){
+            if (thopter.build(construction_site) == ERR_NOT_IN_RANGE){
+                thopter.moveTo(construction_site);
+            }
+        }
+
+        // If there are no construction sites the creep upgrades the RC
+        // Goes to deposit energy in controller
+        else {
+            if (thopter.room.controller) {
+                if (thopter.upgradeController(thopter.room.controller) == ERR_NOT_IN_RANGE) {
+                    thopter.moveTo(thopter.room.controller);
+                }
             }
         }
     }

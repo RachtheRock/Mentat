@@ -13,7 +13,6 @@ export function buildRCLupgrades(room:string, newRCL:number): void{
         for (var i = 0; i < extentionPos.length; ++i){
             extentionPos[i].createConstructionSite(STRUCTURE_CONTAINER);
         }
-
     }
     else if (newRCL === 2){
 

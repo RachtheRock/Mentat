@@ -73,11 +73,10 @@ var roleStarterHarvester = {
         // Goes to deposit energy in spawn or in extensions
         if (creep.memory.data[StarterHarvesterIndex.Harvesting]) {
             // We find the structures in the room that can be "refilled", first we look for towers
-            let structure = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, {
+            let struct = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: function (struct) {
                     // looking for towers that are low on energy
-                    if (struct.structureType == STRUCTURE_SPAWN) {
-                        //if (struct.structureType == STRUCTURE_TOWER){
+                    if (struct.structureType == STRUCTURE_CONTAINER || struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_SPAWN) {
                         // They must be low on energy
                         if (struct.store[RESOURCE_ENERGY] < struct.store.getCapacity(RESOURCE_ENERGY)) {
                             return struct;
@@ -87,9 +86,9 @@ var roleStarterHarvester = {
                 }
             });
             // If this structure exists the creep goes and gives it energy
-            if (structure != undefined) {
-                if (creep.transfer(structure, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(structure);
+            if (struct != undefined) {
+                if (creep.transfer(struct, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(struct);
                 }
             }
             // If there are no empty spawns then the creeps build
@@ -400,10 +399,27 @@ function depositInStorage(thopter) {
                 return null;
             }
         });
+        let construction_site;
         // If such a structure exits we deposit energy in it/try to move towards it
         if (structure) {
             if (thopter.transfer(structure, RESOURCE_ENERGY) != OK) {
                 thopter.moveTo(structure);
+            }
+        }
+        // If there is no such structure (energy deposits are full) then we go to a construction sight/maintain buildings
+        // If construction sites exist, we build on them
+        else if ((construction_site = thopter.pos.findClosestByPath(FIND_CONSTRUCTION_SITES)) != undefined) {
+            if (thopter.build(construction_site) == ERR_NOT_IN_RANGE) {
+                thopter.moveTo(construction_site);
+            }
+        }
+        // If there are no construction sites the creep upgrades the RC
+        // Goes to deposit energy in controller
+        else {
+            if (thopter.room.controller) {
+                if (thopter.upgradeController(thopter.room.controller) == ERR_NOT_IN_RANGE) {
+                    thopter.moveTo(thopter.room.controller);
+                }
             }
         }
     }
@@ -539,13 +555,13 @@ class Governor {
         getNumCreepsByRole(Role.Thopter, this.name);
         if (mentatCommands[MentatCommands.dumbHarvesting]) {
             // We make a special starter harvester
-            if (numStarterHarvesters < 4) {
+            if (numStarterHarvesters < 3) {
                 this.spawnCreep(Role.StarterHarvester);
             }
         }
         else if (mentatCommands[MentatCommands.dynamicHarvesting]) {
             // we maintain only 1 starter harvester
-            if (numStarterHarvesters < 4) {
+            if (numStarterHarvesters < 1) {
                 this.spawnCreep(Role.StarterHarvester);
             }
             // If there are too many harvesters make a thopter
@@ -560,9 +576,7 @@ class Governor {
             else if (this.getUnexpliotedSourceID() != undefined) {
                 this.spawnCreep(Role.Harvester);
             }
-            else {
-                console.log("hi");
-            }
+            else ;
         }
     }
     /**
@@ -768,7 +782,7 @@ class Mentat {
         for (const gov of this.governors) {
             const starterHarvesterCount = getNumCreepsByRole(Role.StarterHarvester, gov.name);
             // If we have made four starter harvesters or if we are already in dyanmic harvesting mode then we dynamic harvest
-            if (starterHarvesterCount === 4 || gov.previousMentatCommands[MentatCommands.dynamicHarvesting]) {
+            if (starterHarvesterCount === 3 || gov.previousMentatCommands[MentatCommands.dynamicHarvesting]) {
                 allCommands.set(gov, [false, true]);
             }
             else {
@@ -800,7 +814,7 @@ function genesis() {
         // Harvester
         Memory.bodyTemplates.push([WORK, WORK, CARRY, MOVE]);
         // Thopter
-        Memory.bodyTemplates.push([CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]);
+        Memory.bodyTemplates.push([CARRY, CARRY, WORK, MOVE, MOVE, MOVE]);
         // Pyon
         Memory.bodyTemplates.push([WORK, CARRY, CARRY, MOVE, MOVE]);
         Memory.governorSourcesMap = [];
