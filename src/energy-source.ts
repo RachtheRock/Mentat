@@ -32,7 +32,7 @@ export class EnergySource{
         this.assignedHarvesters.push(creepId);
     }
 
-    // TODO: As the creeps get larger we less and less harvester creeps per source
+    // TODO: As the creeps get larger we need less and less harvester creeps per source
     //       We need a way to update this
     // Checks to see if the source needs more harvesters or not
     needsMoreHarvesters():boolean{
@@ -43,7 +43,4 @@ export class EnergySource{
             return false;
         }
     }
-
-
-
 }

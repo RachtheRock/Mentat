@@ -249,6 +249,7 @@ function generateCreepName(role, governorName) {
 
 // This function creates all the construction sites in the room whenever an RCL is upgraded
 function buildRCLupgrades(room, newRCL) {
+    console.log(`[INFO] Room ${room} RCL upgraded to RCL ${newRCL}`);
 }
 
 // This class is used by the governors. For every energy source they control they create an energy source object
@@ -279,7 +280,7 @@ class EnergySource {
     assignHarvester(creepId) {
         this.assignedHarvesters.push(creepId);
     }
-    // TODO: As the creeps get larger we less and less harvester creeps per source
+    // TODO: As the creeps get larger we need less and less harvester creeps per source
     //       We need a way to update this
     // Checks to see if the source needs more harvesters or not
     needsMoreHarvesters() {
@@ -425,22 +426,28 @@ class Governor {
         this.spawningCreeps = [];
         this.rcl = 0;
         this.previousMentatCommands = [];
+        // Contains the spawns currently under the governor's control
+        this.spawns = [];
+        // Contains the extensions currently under the governor's control
+        this.extensions = [];
         // The sources that the governor is static minning
         this.sourcesUnderControl = [];
         this.exploitRatio = 0;
-        this.MIN_HARVESTERS = 5;
-        this.MIN_THOPTERS = 5;
-        this.MIN_PYONS = 5;
         // We initialize the governor's name and RCL
         this.name = room.name;
         if ((_a = room.controller) === null || _a === void 0 ? void 0 : _a.level) {
             this.rcl = (_b = room.controller) === null || _b === void 0 ? void 0 : _b.level;
         }
+        // Spawn objects of the governor
+        this.spawns = Game.rooms[this.name].find(FIND_MY_SPAWNS);
         // Now we create/recreate a source object for each source that the governor controls
         this.sourcesUnderControl = [];
+        this.extensions = Game.rooms[this.name].find(FIND_MY_STRUCTURES, {
+            filter: { structureType: STRUCTURE_EXTENSION }
+        });
         // If the governor is new then we begin the construction process and assign it the sources in its room
         if (isNew) {
-            buildRCLupgrades(this.name);
+            buildRCLupgrades(this.name, 1);
             // For all the sources in the room we create new sources objects and assign them to the governor
             // We also add in memory another element to the governor source map
             // Source Objects in the room
@@ -537,32 +544,46 @@ class Governor {
     maintainCreepLevels(mentatCommands) {
         // Check to see if any of our spawning creeps have been spawned
         this.checkSpawningCreeps();
+        // Check to see if there is enough energy to build a creep
+        let totalCapacity = (this.spawns.length * 300) + this.extensions.length * 50;
+        let totalEnergy = 0;
+        for (let i = 0; i < this.spawns.length; i++) {
+            totalEnergy += this.spawns[i].store[RESOURCE_ENERGY];
+        }
+        for (let i = 0; i < this.extensions.length; i++) {
+            totalEnergy += this.extensions[i].store[RESOURCE_ENERGY];
+        }
+        // If we don't have enough energy then we don't build a creep
+        if (totalEnergy != totalCapacity) {
+            return;
+        }
+        // Optimize this
         let numStarterHarvesters = getNumCreepsByRole(Role.StarterHarvester, this.name);
         let numHarvesters = getNumCreepsByRole(Role.Harvester, this.name);
         let numThopters = getNumCreepsByRole(Role.Thopter, this.name);
         getNumCreepsByRole(Role.Thopter, this.name);
         if (mentatCommands[MentatCommands.dumbHarvesting]) {
             // We make a special starter harvester
-            if (numStarterHarvesters < 3) {
-                this.spawnCreep(Role.StarterHarvester);
+            if (numStarterHarvesters < 5) {
+                this.spawnCreep(Role.StarterHarvester, totalEnergy);
             }
         }
         else if (mentatCommands[MentatCommands.dynamicHarvesting]) {
             // we maintain only 1 starter harvester
             if (numStarterHarvesters < 1) {
-                this.spawnCreep(Role.StarterHarvester);
+                this.spawnCreep(Role.StarterHarvester, totalEnergy);
             }
             // If there are too many harvesters make a thopter
             // This first conditional is to avoid divide by zero
             else if (numHarvesters > 0 && numThopters == 0) {
-                this.spawnCreep(Role.Thopter);
+                this.spawnCreep(Role.Thopter, totalEnergy);
             }
             else if (numHarvesters / numThopters > 1) {
-                this.spawnCreep(Role.Thopter);
+                this.spawnCreep(Role.Thopter, totalEnergy);
             }
             // If there are sources that are not being fully exploited then spawn a harvester
             else if (this.getUnexpliotedSourceID() != undefined) {
-                this.spawnCreep(Role.Harvester);
+                this.spawnCreep(Role.Harvester, totalEnergy);
             }
             else ;
         }
@@ -571,16 +592,67 @@ class Governor {
      * Spawns a creep at Spawn1.
      * @param role The role assigned to the newly spawned creep
      */
-    spawnCreep(role) {
+    spawnCreep(role, currentCapacity) {
         let creepName = generateCreepName(role, this.name);
+        let bodyTemplate = [];
+        let spice_packets = Math.floor(currentCapacity / 50);
+        if (role == Role.Harvester) {
+            // For harvesters we aim for a 1 work to 2 carry +1 move ratio
+            // We reserve the spot for the move
+            spice_packets -= 1;
+            console.log(spice_packets);
+            let remainder = spice_packets % 4;
+            let work_num = Math.floor(spice_packets / 4) * 1;
+            let carry_num = Math.floor(spice_packets / 4) * 2;
+            console.log("work" + work_num);
+            console.log("carry" + carry_num);
+            if (remainder == 1) {
+                carry_num += 1;
+            }
+            else if (remainder == 2) {
+                work_num += 1;
+            }
+            else if (remainder == 3) {
+                work_num += 1;
+                carry_num += 1;
+            }
+            for (let i = 1; i <= carry_num; i++) {
+                bodyTemplate.push(CARRY);
+            }
+            for (let i = 1; i <= work_num; i++) {
+                bodyTemplate.push(WORK);
+            }
+            bodyTemplate.push(MOVE);
+        }
+        else if (role == Role.Thopter) {
+            let carry_num = spice_packets * 0.5;
+            for (let i = 0; i < spice_packets; i++) {
+                if (i <= carry_num) {
+                    bodyTemplate.push(CARRY);
+                }
+                else {
+                    bodyTemplate.push(MOVE);
+                }
+            }
+        }
+        else if (role == Role.StarterHarvester) {
+            bodyTemplate = [WORK, WORK, CARRY, MOVE];
+        }
+        console.log(bodyTemplate);
         // TODO: Resolve Spawns dynamically
-        if (Game.spawns['Spawn1'].spawnCreep(Memory.bodyTemplates[role], creepName, { memory: { role: role, governor: this.name, name: creepName, data: this.initData(role) } }) === OK) {
+        console.log((Game.spawns['Spawn1'].spawnCreep(bodyTemplate, creepName, { memory: { role: role, governor: this.name, name: creepName, data: this.initData(role) } })));
+        /*
+        if (Game.spawns['Spawn1'].spawnCreep(
+            bodyTemplate,
+            creepName,
+            { memory: {role: role, governor: this.name, name: creepName, data: this.initData(role)} }
+        ) === OK){
             // If we spawn a creep we add the newly created creep to the governor's list of creeps
             // Unfortunatly a creep is not given an id until it is spawned so we must wait
             // and add its id to the governor's list
-            this.spawningCreeps.push(creepName);
-            console.log("we spawned a creep of type: ", role);
-        }
+        */
+        this.spawningCreeps.push(creepName);
+        console.log("we spawned a creep of type: ", role);
     }
     // Initializes a creep's memory depending upon its role
     initData(role) {
@@ -671,7 +743,7 @@ class Governor {
             if (currentRCL > this.rcl) {
                 console.log(`Room ${this.name} was upgraded to RCL ${currentRCL}.`);
                 // If the rcl has changed we build all the new avaible buildings
-                buildRCLupgrades(this.name);
+                buildRCLupgrades(this.name, currentRCL);
                 this.rcl = currentRCL;
             }
         }
@@ -795,21 +867,10 @@ function genesis() {
     if (Memory.awake === undefined) {
         console.log('Genesis: begin');
         Memory.awake = true;
-        // We initialize the memory
-        Memory.bodyTemplates = [];
-        // Starter Harvester
-        Memory.bodyTemplates.push([WORK, WORK, CARRY, MOVE]);
-        // Harvester
-        Memory.bodyTemplates.push([WORK, WORK, CARRY, MOVE]);
-        // Thopter
-        Memory.bodyTemplates.push([CARRY, CARRY, WORK, MOVE, MOVE, MOVE]);
-        // Pyon
-        Memory.bodyTemplates.push([WORK, CARRY, CARRY, MOVE, MOVE]);
         Memory.governorSourcesMap = [];
         return new Mentat(true);
     }
     else {
-        console.log('Genesis: already begun');
         return new Mentat(false);
     }
 }
@@ -16395,83 +16456,69 @@ class ErrorMapper {
 ErrorMapper.cache = {};
 
 let mentat = genesis();
+function handleDeadCreep(name) {
+    let deadCreep = Memory.creeps[name];
+    let role = deadCreep.role;
+    let governor = mentat.governors.find((g) => { return g.name === deadCreep.governor; });
+    switch (role) {
+        // Detach harvester from the energy source that it was mining
+        case Role.Harvester: {
+            for (let j = 0; j < governor.sourcesUnderControl.length; ++j) {
+                if (governor.sourcesUnderControl[j].id === deadCreep.data[HarvesterIndex.SourceId]) {
+                    let source = governor.sourcesUnderControl[j];
+                    // Look for the creep in the source object's list of creeps and remove it
+                    for (let k = 0; k < source.assignedHarvesters.length; ++k) {
+                        // If we find a creep that is no longer in the game
+                        if (Game.getObjectById(source.assignedHarvesters[k]) == null) {
+                            source.assignedHarvesters.splice(k, 1);
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        // Thopter alerts the attached harvester that it is no longer incoming
+        case Role.Thopter: {
+            // We get the target harvester
+            let targetHarvester = Game.getObjectById(deadCreep.data[ThopterIndex.HarvesterTarget]);
+            // If it had a target harvester
+            if (targetHarvester instanceof Creep) {
+                let governor = mentat.governors.find((g) => { return g.name === deadCreep.governor; });
+                // Look for the harvester
+                for (let j = 0; j < governor.creeps.length; ++j) {
+                    // If found, we update its thopter incoming message
+                    if (governor.creeps[j] === targetHarvester.id) {
+                        targetHarvester.memory.data[HarvesterIndex.ThopterIncomming] = false;
+                    }
+                }
+            }
+            break;
+        }
+        case Role.Pyon: {
+            // TODO: Pyon death
+            break;
+        }
+    }
+    // Remove creep from governor's list
+    for (let j = 0; j < governor.creeps.length; ++j) {
+        let creep = Game.getObjectById(governor.creeps[j]);
+        // If a creep does not have a game Id any more we remove him from the
+        // governor's list of creeps
+        if (creep == null) {
+            governor.creeps.splice(j, 1);
+            console.log("creep removed!");
+        }
+    }
+    delete Memory.creeps[name];
+}
 // When compiling TS to JS and bundling with rollup, the line numbers and file names in error messages change
 // This utility uses source maps to get the line numbers and file names of the original, TS source code
 const loop = ErrorMapper.wrapLoop(() => {
-    // console.log(`Current game tick is ${Game.time}`);
-    // TODO: Break memory management into multiple files/functions
-    // Automatically delete memory of missing creeps
+    // TODO @john: move this to an event-based architecture
     for (const name in Memory.creeps) {
         if (!(name in Game.creeps)) {
-            // The object of the dead creep
-            let deadCreep = Memory.creeps[name];
-            // We get its role and clear its name out from various other areas if needed
-            let role = deadCreep.role;
-            // If the creep is a harvester we must remove its name from the energy source object that it was minning
-            if (role == Role.Harvester) {
-                // We get the governor that the creep belonged to and access the source object
-                // Look for the governor
-                for (let i = 0; i < mentat.governors.length; ++i) {
-                    if (mentat.governors[i].name === deadCreep.governor) {
-                        let governor = mentat.governors[i];
-                        // Look for the source that the harvester belonged to
-                        for (let j = 0; j < governor.sourcesUnderControl.length; ++j) {
-                            if (governor.sourcesUnderControl[j].id === deadCreep.data[HarvesterIndex.SourceId]) {
-                                let source = governor.sourcesUnderControl[j];
-                                // Look for the creep in the source object's list of creeps and remove it
-                                for (let k = 0; k < source.assignedHarvesters.length; ++k) {
-                                    // If we find a creep that is no longer in the game
-                                    if (Game.getObjectById(source.assignedHarvesters[k]) == null) {
-                                        source.assignedHarvesters.splice(k, 1);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            // If a thopter dies we must alert its harvester that it is no longer incoming
-            if (role == Role.Thopter) {
-                // We get the target harvester
-                let targetHarvester = Game.getObjectById(deadCreep.data[ThopterIndex.HarvesterTarget]);
-                // If it had a target harvester
-                if (targetHarvester instanceof Creep) {
-                    // Look for the governor
-                    for (let i = 0; i < mentat.governors.length; ++i) {
-                        if (mentat.governors[i].name === deadCreep.governor) {
-                            let governor = mentat.governors[i];
-                            // Look for the harvester
-                            for (let j = 0; j < governor.creeps.length; ++j) {
-                                // If found, we update its thopter incoming message
-                                if (governor.creeps[j] === targetHarvester.id) {
-                                    targetHarvester.memory.data[HarvesterIndex.ThopterIncomming] = false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            // Now we delete the creep from the governor's memory
-            // This is redundant as we've already looped through the governors
-            // in the two cases above but I'm tired and want to push
-            // Look for the governor
-            for (let i = 0; i < mentat.governors.length; ++i) {
-                if (mentat.governors[i].name === deadCreep.governor) {
-                    let governor = mentat.governors[i];
-                    // look for the creep
-                    for (let j = 0; j < governor.creeps.length; ++j) {
-                        let creep = Game.getObjectById(governor.creeps[j]);
-                        // If a creep does not have a game Id any more we remove him from the
-                        // governor's list of creeps
-                        if (creep == null) {
-                            governor.creeps.splice(j, 1);
-                            console.log("creep removed!");
-                        }
-                    }
-                }
-            }
-            delete Memory.creeps[name];
+            handleDeadCreep(name);
         }
     }
     mentat.run();

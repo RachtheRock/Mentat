@@ -160,20 +160,17 @@ export class Governor {
         let totalEnergy = 0;
 
         for (let i = 0; i < this.spawns.length; i++){
-            totalEnergy += this.spawns[i].store[RESOURCE_ENERGY]*300
+            totalEnergy += this.spawns[i].store[RESOURCE_ENERGY]
         }
-        Game.spawns['Spawn1']
+
         for (let i = 0; i < this.extensions.length; i++){
-            totalEnergy += this.extensions[i].store[RESOURCE_ENERGY]*50
+            totalEnergy += this.extensions[i].store[RESOURCE_ENERGY]
         }
 
         // If we don't have enough energy then we don't build a creep
         if (totalEnergy != totalCapacity){
             return
         }
-
-        console.log("total energy capacity: "+totalCapacity);
-        console.log("total energy capacity: "+totalEnergy);
 
         // Optimize this
         let numStarterHarvesters = getNumCreepsByRole(Role.StarterHarvester, this.name);
@@ -220,14 +217,19 @@ export class Governor {
         let creepName: string = generateCreepName(role, this.name);
 
         let bodyTemplate: BodyPartConstant[] = []
-        let spice_packets = Math.floor(currentCapacity / 50) - 1;
+        let spice_packets = Math.floor(currentCapacity / 50);
 
         if (role == Role.Harvester){
-            // For harvesters we aim for a 1 work to 2 carry to 1 move ratio
+            // For harvesters we aim for a 1 work to 2 carry +1 move ratio
+            // We reserve the spot for the move
+            spice_packets -= 1
+            console.log(spice_packets);
             let remainder = spice_packets % 4;
 
-            let work_num = spice_packets * 0.5;
-            let carry_num = spice_packets * 0.5;
+            let work_num = Math.floor(spice_packets / 4) * 1;
+            let carry_num = Math.floor(spice_packets / 4) * 2;
+            console.log("work"+work_num);
+            console.log("carry"+carry_num);
 
             if (remainder == 1){
                 carry_num += 1;
@@ -240,13 +242,12 @@ export class Governor {
                 carry_num += 1;
             }
 
-            for (let i = 0; i < spice_packets; i++){
-                if (i <= carry_num){
-                    bodyTemplate.push(CARRY)
-                }
-                else{
-                    bodyTemplate.push(WORK)
-                }
+            for (let i = 1; i <= carry_num; i++){
+                    bodyTemplate.push(CARRY);
+            }
+
+            for (let i = 1; i <= work_num; i++){
+                    bodyTemplate.push(WORK);
             }
 
             bodyTemplate.push(MOVE)
@@ -274,7 +275,16 @@ export class Governor {
             }
         }
 
+        else if (role == Role.StarterHarvester){
+            bodyTemplate = [WORK, WORK, CARRY, MOVE];
+        }
+        console.log(bodyTemplate);
+
         // TODO: Resolve Spawns dynamically
+        console.log((Game.spawns['Spawn1'].spawnCreep(bodyTemplate, creepName,
+            {memory: {role: role, governor: this.name, name: creepName, data: this.initData(role)} }
+        )));
+        /*
         if (Game.spawns['Spawn1'].spawnCreep(
             bodyTemplate,
             creepName,
@@ -283,9 +293,10 @@ export class Governor {
             // If we spawn a creep we add the newly created creep to the governor's list of creeps
             // Unfortunatly a creep is not given an id until it is spawned so we must wait
             // and add its id to the governor's list
-            this.spawningCreeps.push(creepName)
-            console.log("we spawned a creep of type: ", role);
-        }
+        */
+        this.spawningCreeps.push(creepName);
+        console.log("we spawned a creep of type: ", role);
+
     }
 
     // Initializes a creep's memory depending upon its role
