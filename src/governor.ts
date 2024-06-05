@@ -17,9 +17,6 @@ export class Governor {
     // Contains the spawns currently under the governor's control
     spawns: StructureSpawn[] = [];
 
-    // Contains the extensions currently under the governor's control
-    extensions: StructureExtension[] = [];
-
     // The sources that the governor is static minning
     sourcesUnderControl: EnergySource[] = [];
     exploitRatio = 0;
@@ -43,10 +40,6 @@ export class Governor {
         // Now we create/recreate a source object for each source that the governor controls
         this.sourcesUnderControl = [];
 
-        this.extensions = Game.rooms[this.name].find(FIND_MY_STRUCTURES, {
-            filter: { structureType: STRUCTURE_EXTENSION }
-        });
-
         // If the governor is new then we begin the construction process and assign it the sources in its room
         if(isNew){
             buildRCLupgrades(this.name, 1);
@@ -55,6 +48,7 @@ export class Governor {
 
             // Source Objects in the room
             let sources = Game.rooms[this.name].find(FIND_SOURCES);
+
             // IDs of source objects in the room
             let idsOfSources = [];
 
@@ -114,17 +108,6 @@ export class Governor {
      * Executes orders given by Mentat.
      */
      executeOrders(mentatCommands: MentatCommands[]): void {
-        /*
-        for (let i = 0; i < this.creeps.length; ++i){
-            let creep = Game.getObjectById(this.creeps[i]);
-            if (creep!.memory.role === Role.Harvester){
-                console.log(creep!.memory.data[HarvesterIndex.SourceId]);
-                console.log(creep!.id);
-                console.log("hi");
-            }
-        }
-        */
-        //console.log(this.creeps.length);
         this.maintainCreepLevels(mentatCommands);
         this.runCreeps();
         // Builds the necessary buildings based upon RCL
@@ -132,45 +115,21 @@ export class Governor {
     }
 
     /*
-     * Generates a report that mentat can process. I removed this feature since it was redundant but I kept this for funzies
-    getReport(mentatCommands: MentatCommands[]): Report{
-        let energy: number = Game.rooms[this.name]!.energyAvailable;
-
-        let storages: AnyStructure[]  = Game.rooms[this.name].find(FIND_STRUCTURES);
-
-        for (let i = 0; i < storages.length; ++i) {
-            let storage = storages[i];
-            if (storage.structureType === STRUCTURE_CONTAINER || storage.structureType === STRUCTURE_STORAGE) {
-                energy += storage.store[RESOURCE_ENERGY];
-            }
-        }
-
-    }
+    Spawns creeps when necessary so that creep levels are properly maintained.
     */
-
-    /**
-     * Spawns creeps when necessary so that creep levels are properly maintained.
-     */
-     maintainCreepLevels(mentatCommands: MentatCommands[]): void {
+    maintainCreepLevels(mentatCommands: MentatCommands[]): void {
         // Check to see if any of our spawning creeps have been spawned
         this.checkSpawningCreeps();
 
         // Check to see if there is enough energy to build a creep
-        let totalCapacity = (this.spawns.length * 300) + this.extensions.length*50;
-        let totalEnergy = 0;
+        let totalEnergy: number = Game.rooms[this.name].energyAvailable;
+        let totalCapacity: number = Game.rooms[this.name].energyCapacityAvailable;
 
-        for (let i = 0; i < this.spawns.length; i++){
-            totalEnergy += this.spawns[i].store[RESOURCE_ENERGY]
-        }
-
-        for (let i = 0; i < this.extensions.length; i++){
-            totalEnergy += this.extensions[i].store[RESOURCE_ENERGY]
-        }
-
-        // If we don't have enough energy then we don't build a creep
-        if (totalEnergy != totalCapacity){
+        // If we don't have enough energy or if the spawn is already spawning then we don't build a creep
+        if (totalEnergy != totalCapacity || this.spawns[0].spawning){
             return
         }
+        console.log("hi");
 
         // Optimize this
         let numStarterHarvesters = getNumCreepsByRole(Role.StarterHarvester, this.name);
@@ -223,13 +182,10 @@ export class Governor {
             // For harvesters we aim for a 1 work to 2 carry +1 move ratio
             // We reserve the spot for the move
             spice_packets -= 1
-            console.log(spice_packets);
             let remainder = spice_packets % 4;
 
             let work_num = Math.floor(spice_packets / 4) * 1;
             let carry_num = Math.floor(spice_packets / 4) * 2;
-            console.log("work"+work_num);
-            console.log("carry"+carry_num);
 
             if (remainder == 1){
                 carry_num += 1;
@@ -278,25 +234,17 @@ export class Governor {
         else if (role == Role.StarterHarvester){
             bodyTemplate = [WORK, WORK, CARRY, MOVE];
         }
-        console.log(bodyTemplate);
 
         // TODO: Resolve Spawns dynamically
-        console.log((Game.spawns['Spawn1'].spawnCreep(bodyTemplate, creepName,
+        Game.spawns["Spawn1"].spawnCreep(bodyTemplate, creepName,
             {memory: {role: role, governor: this.name, name: creepName, data: this.initData(role)} }
-        )));
-        /*
-        if (Game.spawns['Spawn1'].spawnCreep(
-            bodyTemplate,
-            creepName,
-            { memory: {role: role, governor: this.name, name: creepName, data: this.initData(role)} }
-        ) === OK){
-            // If we spawn a creep we add the newly created creep to the governor's list of creeps
-            // Unfortunatly a creep is not given an id until it is spawned so we must wait
-            // and add its id to the governor's list
-        */
+        );
+
+        // If we spawn a creep we add the newly created creep to the governor's list of creeps
+        // Unfortunatly a creep is not given an id until it is spawned so we must wait
+        // and add its id to the governor's list
         this.spawningCreeps.push(creepName);
         console.log("we spawned a creep of type: ", role);
-
     }
 
     // Initializes a creep's memory depending upon its role
@@ -325,7 +273,9 @@ export class Governor {
     checkSpawningCreeps(): void{
         // For all the creeps that are spanwing
         for (let i = 0; i < this.spawningCreeps.length; ++i){
+
             let creep = Game.creeps[this.spawningCreeps[i]];
+
             // If the creep has an id it has been spawned
             if(creep.id != undefined){
                 // We add the newly spawned creep to the governor's list
@@ -340,6 +290,7 @@ export class Governor {
                     for (let j = 0; j < this.sourcesUnderControl.length; ++j){
                         if (creepSource === this.sourcesUnderControl[j]){
                             this.sourcesUnderControl[j].assignHarvester(creep.id);
+                            console.log("Assigned to source");
                         }
                     }
                 }
@@ -405,6 +356,10 @@ export class Governor {
     getUnexpliotedSourceID(): Id<Source> | undefined{
         // We look at sources that need more harvesters
         for(let i = 0; i < this.sourcesUnderControl.length; ++i){
+            console.log("");
+            console.log(i);
+            console.log(this.sourcesUnderControl[i].assignedHarvesters);
+            console.log(this.sourcesUnderControl[i].getSpotsAvailable());
             // If there is a source under the governor's control that needs more harvesters we return its ID
             if (this.sourcesUnderControl[i].needsMoreHarvesters()){
                 return this.sourcesUnderControl[i].id;
